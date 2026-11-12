@@ -15,7 +15,7 @@ router = APIRouter(
 
 @router.get('/', response_model=List[AnnuncioResponse])
 def get_all_annunci(db: Annotated[Session, Depends(get_db)]):
-  annunci = db.scalars(select(Annuncio)).all()
+  annunci = db.scalars(select(Annuncio).order_by(Annuncio.datetime_pubblicazione.desc())).all()
   if annunci:
     return annunci
   raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Errore: Non sono presenti annunci nel DB')

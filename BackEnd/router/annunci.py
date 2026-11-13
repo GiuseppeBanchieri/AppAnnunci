@@ -29,12 +29,12 @@ def get_one_annuncio(annuncio_id: int, db: Annotated[Session, Depends(get_db)]):
     return annuncio
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=AnnuncioResponse)
-def post_annuncio(annuncio: AnnuncioCreate, db: Annotated[Session, Depends(get_db)]):
-  nuovo_annuncio = Annuncio(**annuncio.model_dump())
-  db.add(nuovo_annuncio)
+def post_annuncio(nuovo_annuncio: AnnuncioCreate, db: Annotated[Session, Depends(get_db)]):
+  nuovo_annuncio_db = Annuncio(**nuovo_annuncio.model_dump())
+  db.add(nuovo_annuncio_db)
   db.commit()
-  db.refresh(nuovo_annuncio)
-  return nuovo_annuncio
+  db.refresh(nuovo_annuncio_db)
+  return nuovo_annuncio_db
 
 @router.put('/{annuncio_id}', response_model=AnnuncioResponse)
 def put_post(annuncio_id: int, annuncio_modificato: AnnuncioCreate, db: Annotated[Session, Depends(get_db)]):

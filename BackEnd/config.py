@@ -1,5 +1,6 @@
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr
 
 
 class Settings(BaseSettings):
@@ -8,8 +9,12 @@ class Settings(BaseSettings):
   database_password: str
   database_name: str
   database_username: str
+  
+  secret_key: SecretStr
+  algorithm: str
+  access_token_expire_minutes: int
 
-  model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra="ignore")
+  model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
 
 
 settings = Settings()

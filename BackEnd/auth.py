@@ -26,7 +26,7 @@ class AccessToken():
   def create(data: dict, minutes_to_expiration: int = settings.access_token_expire_minutes) -> str:
     to_encode = data.copy()
     expiration_delta = datetime.now(UTC) + timedelta(minutes=minutes_to_expiration)
-    to_encode.update({'expiration':expiration_delta})
+    to_encode.update({'exp':expiration_delta})
     encoded_token = jwt.encode(to_encode, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)
     return encoded_token
 

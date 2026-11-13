@@ -32,7 +32,21 @@ def create_user(new_user: UserCreate, db: Annotated[Session, Depends(get_db)]):
   db.refresh(new_user_db)
   return new_user_db
 
+@router.post('/login', response_model=Token)
+def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[Session, Depends(get_db)]):
+  #Il campo username del formdata, che deve essere chiamato così per essere conforme a OAuth2, è la mail
+  user = db.scalars(select(User).where(User.email == form_data.username)).first()
+  password_verification = False
+  if user:
+    password_verification = Password.verify(form_data.password, user.password_hash)
 
+  if password_verification == False:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Email o password non corrette', headers={'WWW-Authenticate':'Bearer'})
+
+  return Token(
+    acces_token=AccessToken.create(data={'sub': str(user.id)}),
+    type='bearer'
+    )
 
 
   

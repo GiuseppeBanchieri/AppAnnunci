@@ -48,5 +48,15 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annota
     type='bearer'
     )
 
+@router.get('/me', response_model=UserResponsePrivate)
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[Session, Depends(get_db)]):
+  user_id:int = AccessToken.verify(token)
+  if user_id == None:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
+  user_db = db.scalars(select(User).where(User.id == user_id)).first()
+  if user_db == None:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
+  else:
+    return user_db
 
   

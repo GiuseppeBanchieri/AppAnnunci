@@ -51,3 +51,15 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annota
 @router.get('/me', response_model=UserResponsePrivate)
 def get_current_user(current_user: Annotated[User, Depends(jwt.jwt_get_current_user)]):
   return current_user
+
+@router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int, db: Annotated[Session, Depends(get_db)],
+                auth_id: Annotated[int, Depends(jwt.VerifyJWT(return_user_id=True))]):
+  if user_id != auth_id:
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Non siete autorizzato a cancellare questo profilo', headers={'WWW-Authenticate':'Bearer'})
+  user_db = db.scalars(select(User).where(User.id == user_id)).first()
+  if user_db is None:
+    raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Errore: L\'utente selezionato non è presente nel DB')
+  else:
+    db.delete(user_db)
+    db.commit()

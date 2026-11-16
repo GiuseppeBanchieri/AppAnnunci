@@ -19,32 +19,29 @@ def jwt_create(data: dict, minutes_to_expiration: int = settings.access_token_ex
   to_encode.update({'exp':expiration_delta})
   encoded_token = jwt.encode(to_encode, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)
   return encoded_token
+    
+class VerifyJWT():
+  def __init__(self, return_user_id: bool = True):
+    self.return_user_id: bool = return_user_id
 
-def jwt_verify(token: Annotated[str, Depends(oauth2_scheme)]) ->  None:
-  try:
-    jwt.decode(
-      token, settings.secret_key.get_secret_value(), algorithms=[settings.algorithm], options={'require': ['exp', 'sub']}
-      )
-  except jwt.InvalidTokenError:
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
-  else:
-    return None
-  
-def jwt_get_current_user_id(token: Annotated[str, Depends(oauth2_scheme)]) -> int:
-  try:
-    payload = jwt.decode(
-      token, settings.secret_key.get_secret_value(), algorithms=[settings.algorithm], options={'require': ['exp', 'sub']}
-      )
-  except jwt.InvalidTokenError:
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
-  else:
-    user_id = payload.get('sub')
-    if user_id == None:
+  def __call__(self, token: Annotated[str, Depends(oauth2_scheme)]) -> int | None:
+    try:
+        payload = jwt.decode(
+          token, settings.secret_key.get_secret_value(), algorithms=[settings.algorithm], options={'require': ['exp', 'sub']}
+          )
+    except jwt.InvalidTokenError:
       raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
     else:
-      return int(user_id)
+      if self.return_user_id:
+        user_id = payload.get('sub')
+        if user_id == None:
+          raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
+        else:
+          return int(user_id)
+      else:
+        return None
 
-def jwt_get_current_user(user_id: Annotated[int, Depends(jwt_get_current_user_id)], db: Annotated[Session, Depends(get_db)]) -> User:
+def jwt_get_current_user(user_id: Annotated[int, Depends(VerifyJWT(return_user_id=True))], db: Annotated[Session, Depends(get_db)]) -> User:
   user = db.scalars(select(User).where(User.id == user_id)).first()
   if user == None: 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})

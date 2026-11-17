@@ -55,7 +55,7 @@ def put_post(annuncio_id: int, annuncio_modificato: AnnuncioCreate, db: Annotate
 
 
 @router.patch('/{annuncio_id}', response_model=AnnuncioResponse)
-def put_post(annuncio_id: int, annuncio_modificato: AnnuncioPatch, db: Annotated[Session, Depends(get_db)],
+def patch_post(annuncio_id: int, annuncio_modificato: AnnuncioPatch, db: Annotated[Session, Depends(get_db)],
              auth: Annotated[None, Depends(jwt.VerifyJWT(return_user_id=False))]):
   #Patch è un update parziale
   annuncio = db.scalars(select(Annuncio).where(Annuncio.id == annuncio_id)).first()

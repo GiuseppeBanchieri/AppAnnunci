@@ -10,7 +10,6 @@ class UserCreate(UserBase):
 
 class UserPatch(UserBase):
   email: EmailStr | None = Field(default = None, min_length=1, max_length=120)
-  password: str | None = Field(default = None, min_length=8)
 
 class UserResponsePrivate(UserBase):
   id: int

@@ -1,7 +1,16 @@
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 
-#Da aggiustare per includere le relazioni
+
+class ListaAnnunciPaginata(BaseModel):
+  annunci: list[AnnuncioResponse]
+  tot_annunci: int
+  offset: int
+  limit: int
+  tot_pagine: int
+  pag_corrente: int
+  has_more: bool
+
 class AnnuncioBase(BaseModel):
   titolo: str = Field(min_length=1, max_length=100)
   contenuto: str | None = Field(default= None)

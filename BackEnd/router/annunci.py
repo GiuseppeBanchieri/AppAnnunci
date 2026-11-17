@@ -1,11 +1,12 @@
-from fastapi import Depends, status, APIRouter, HTTPException
+from fastapi import Depends, status, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-from typing import List, Annotated
+from sqlalchemy import select, func, table, column
+from typing import Annotated
+from math import ceil
 
 from database import get_db
 from models.annuncio_models import Annuncio
-from schemas.annuncio_schemas import AnnuncioResponse, AnnuncioCreate, AnnuncioPatch
+from schemas.annuncio_schemas import AnnuncioResponse, AnnuncioCreate, AnnuncioPatch, ListaAnnunciPaginata
 from auth import jwt
 
 router = APIRouter(
@@ -14,12 +15,26 @@ router = APIRouter(
 )
 
 
-@router.get('/', response_model=List[AnnuncioResponse])
-def get_all_annunci(db: Annotated[Session, Depends(get_db)]):
-  annunci = db.scalars(select(Annuncio).order_by(Annuncio.datetime_pubblicazione.desc())).all()
-  if annunci:
-    return annunci
-  raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Errore: Non sono presenti annunci nel DB')
+@router.get('/', response_model=ListaAnnunciPaginata)
+def get_all_annunci(db: Annotated[Session, Depends(get_db)],
+                    ofs: Annotated[int, Query(ge=0, description='Numero di elementi da saltare per la paginazione, deve essere maggiore o uguale a 0, default è 0')] = 0,
+                    lim: Annotated[int, Query(ge=0, le=50, description='Numero di elementi da ritornare per ogni pagina, deve essere uguale o inferiore a 50, default è 50')] = 50
+                    ):
+  annunci = db.scalars(select(Annuncio).order_by(Annuncio.datetime_pubblicazione.desc()).limit(lim).offset(ofs)).all()
+  if len(annunci) == 0:
+    raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Errore: Non sono presenti annunci nel DB')
+  tot_ann = db.scalar(select(func.count()).select_from(table(Annuncio.__tablename__, column('id'))))
+  tot_pag = ceil(tot_ann / lim)
+  pag_corr = ceil((ofs / lim) +1)
+  has_more = ofs + len(annunci) < tot_ann
+  return ListaAnnunciPaginata(annunci= [AnnuncioResponse.model_validate(annuncio) for annuncio in annunci],
+                              offset=ofs,
+                              limit=lim,
+                              tot_annunci=tot_ann,
+                              tot_pagine=tot_pag,
+                              pag_corrente=pag_corr,
+                              has_more=has_more)
+  
 
 @router.get('/{annuncio_id}', response_model=AnnuncioResponse)
 def get_one_annuncio(annuncio_id: int, db: Annotated[Session, Depends(get_db)],

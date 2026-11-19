@@ -1,8 +1,9 @@
 from fastapi import Depends, status, APIRouter, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
-from sqlalchemy import select, func
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user_models import User
 from database import get_db
@@ -17,8 +18,10 @@ router = APIRouter(
 
 
 @router.post('/', response_model=UserResponsePrivate, status_code=status.HTTP_201_CREATED)
-def create_user(new_user: UserCreate, db: Annotated[Session, Depends(get_db)]):
-  existing_user_db = db.scalars(select(User).where(User.email == new_user.email)).first()
+async def create_user(new_user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+
+  existing_user_query = await db.scalars(select(User).where(User.email == new_user.email))
+  existing_user_db = existing_user_query.first()
   if existing_user_db:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Email già registrata')
   new_user_db = User(
@@ -28,14 +31,15 @@ def create_user(new_user: UserCreate, db: Annotated[Session, Depends(get_db)]):
     cognome = new_user.cognome
     )
   db.add(new_user_db)
-  db.commit()
-  db.refresh(new_user_db)
+  await db.commit()
+  await db.refresh(new_user_db)
   return new_user_db
 
 @router.post('/login', response_model=Token)
-def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[Session, Depends(get_db)]):
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db)]):
   #Il campo username del formdata, che deve essere chiamato così per essere conforme a OAuth2, è la mail
-  user = db.scalars(select(User).where(User.email == form_data.username)).first()
+  user_query = await db.scalars(select(User).where(User.email == form_data.username))
+  user = user_query.first()
   password_verification = False
   if user:
     password_verification = password.verify_password(form_data.password, user.password_hash)
@@ -48,40 +52,45 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annota
     type='bearer'
     )
 
+
 @router.get('/me', response_model=UserResponsePrivate)
-def get_current_user(current_user: Annotated[User, Depends(jwt.jwt_get_current_user)]):
+async def get_current_user(current_user: Annotated[User, Depends(jwt.jwt_get_current_user)]):
   return current_user
 
+
 @router.patch('/{user_id}', response_model=UserResponsePrivate)
-def patch_user(user_id: int, user_modificato:UserPatch, db: Annotated[Session, Depends(get_db)],
+async def patch_user(user_id: int, user_modificato:UserPatch, db: Annotated[AsyncSession, Depends(get_db)],
                auth_id: Annotated[int, Depends(jwt.VerifyJWT(return_user_id=True))]):
   if user_id != auth_id:
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Non siete autorizzato a modificare questo profilo')
-  user_db = db.scalars(select(User).where(User.id == user_id)).first()
+  user_query = await db.scalars(select(User).where(User.id == user_id))
+  user_db = user_query.first()
   if user_db is None:
     raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Errore: L\'utente selezionato non è presente nel DB')
   update_data = user_modificato.model_dump(exclude_unset=True, exclude_defaults=True)
   #Controllo che la mail nuova, se è parte della modifica, non sia già in db, in quanto ha la restrizione unique
   nuova_email: str | None = update_data.get('email')
   if nuova_email is not None and nuova_email != user_db.email:
-    user_esistente_nuova_mail = db.scalars(select(User).where(User.email == nuova_email)).first()
+    user_esistente_nuova_mail_query = await db.scalars(select(User).where(User.email == nuova_email))
+    user_esistente_nuova_mail = user_esistente_nuova_mail_query.first()
     if user_esistente_nuova_mail is not None:
       raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='L\'indirizzo mail è già assegnato ad un utente')
   for key, attr in update_data.items():
     setattr(user_db, key, attr)
-  db.commit()
-  db.refresh(user_db)
+  await db.commit()
+  await db.refresh(user_db)
   return user_db
   
 
 @router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Annotated[Session, Depends(get_db)],
+async def delete_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)],
                 auth_id: Annotated[int, Depends(jwt.VerifyJWT(return_user_id=True))]):
+  
   if user_id != auth_id:
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Non siete autorizzato a cancellare questo profilo')
   user_db = db.scalars(select(User).where(User.id == user_id)).first()
   if user_db is None:
     raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Errore: L\'utente selezionato non è presente nel DB')
   else:
-    db.delete(user_db)
-    db.commit()
+    await db.delete(user_db)
+    await db.commit()

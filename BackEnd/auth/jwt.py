@@ -4,7 +4,7 @@ import jwt
 from fastapi.security import OAuth2PasswordBearer
 from typing import Annotated
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from models.user_models import User
@@ -41,11 +41,11 @@ class VerifyJWT():
       else:
         return None
 
-def jwt_get_current_user(user_id: Annotated[int, Depends(VerifyJWT(return_user_id=True))], db: Annotated[Session, Depends(get_db)]) -> User:
-  user = db.scalars(select(User).where(User.id == user_id)).first()
+async def jwt_get_current_user(user_id: Annotated[int, Depends(VerifyJWT(return_user_id=True))], db: Annotated[AsyncSession, Depends(get_db)]) -> User:
+
+  user_query = await db.scalars(select(User).where(User.id == user_id))
+  user = user_query.first()
   if user == None: 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='JWT scaduto o non valido', headers={'WWW-Authenticate':'Bearer'})
   else:
     return user
-
-  

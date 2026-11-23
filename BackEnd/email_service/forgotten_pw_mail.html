@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reimpostazione password dimenticata</title>
+</head>
+<body style="margin: 0px; font-family: Arial, Helvetica, sans-serif; background-color: lightgray; display: flex; justify-content: center; align-items: center; max-width:1000px; max-height: 1000px">
+  <div style="background-color: white; width: 70%; padding: 20px; padding-top: 0px; border-radius: 20px">
+  <h1 style="color: darkblue; font-family: Tahoma, sans-serif">AppAnnunci</h1>
+  <span style="font-size: normal">Buongiorno {{nome_user}},<br>
+    <br>
+    Clicca il bottone sottostante per impostare una nuova password:<br>
+    <button type="button" style="background-color: greenyellow; padding: 10px; border: none; border-radius: 20px; margin: 15px; cursor: pointer"><a href="{{pw_reset_url}}" style="color: white; text-decoration: none">Imposta nuova password</a></button><br>
+    Alternativamente, puoi cliccare sul seguente link: <a href="{{pw_reset_url}}">{{pw_reset_url}}</a><br>
+Il link non sarà più valido tra un'ora.<br>
+Se non hai richiesto di impostare una nuova password ignora questa mail.
+  </span>
+  <span style="font-size:small">
+    <br>---<br>
+    Cordiali saluti,<br>
+    il team di AppAnnunci
+  </span>
+  </div>
+</body>

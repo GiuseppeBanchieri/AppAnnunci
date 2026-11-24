@@ -4,7 +4,7 @@ from send_noreply_emails import send_noreply_email
 from config import settings
 
 
-async def send_forgotten_pw_emails(mail_recipient: str, token: str, nome_user: str | None = None) -> None:
+async def send_forgotten_pw_email(mail_recipient: str, token: str, nome_user: str | None = None) -> None:
   pw_reset_url = f'{settings.password_reset_frontend_url}/reset_password?token={token}'
   if nome_user is None:
     nome_user= ''

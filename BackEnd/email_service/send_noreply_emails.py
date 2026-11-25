@@ -13,8 +13,7 @@ async def send_noreply_email(recipient: str, subject: str, plain_text: str, html
 
   msg.add_alternative(html_content, subtype='html')
 
-  await aiosmtplib.send(
-    message=msg,
+  await aiosmtplib.send(msg,
     hostname=settings.mail_server,
     port=settings.mail_port,
     username=settings.mail_username,

@@ -67,6 +67,18 @@ async def get_current_user(current_user: Annotated[User, Depends(jwt.jwt_get_cur
   return current_user
 
 
+@router.patch('/me/password', status_code=status.HTTP_200_OK)
+async def cambio_password(password_data: ChangePasswordRequest, 
+                          current_user: Annotated[User, Depends(jwt.jwt_get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
+
+  pw_verification = password.verify_password(password_data.current_password, current_user.password_hash)
+  if not pw_verification or password_data.current_password == password_data.new_password:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Password vecchia non corretta o uguale a password nuova')
+  else:
+    current_user.password_hash = password.hash_password(password_data.new_password)
+    await db.commit()
+
+
 @router.patch('/{user_id}', response_model=UserResponsePrivate)
 async def patch_user(user_id: int, user_modificato:UserPatch, db: Annotated[AsyncSession, Depends(get_db)],
                auth_id: Annotated[int, Depends(jwt.VerifyJWT(return_user_id=True))]):
@@ -161,7 +173,3 @@ async def reset_password(request_data: ResetPasswordRequest, db: Annotated[Async
 
   await db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user_db.id))
   await db.commit()
-
-  
-
-  

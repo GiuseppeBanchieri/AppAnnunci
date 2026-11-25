@@ -17,7 +17,7 @@ class UserResponsePrivate(UserBase):
 
   model_config = ConfigDict(from_attributes=True)
 
-class Token(BaseModel):
+class JWToken(BaseModel):
   acces_token: str
   type: str
 

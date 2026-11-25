@@ -42,7 +42,7 @@ async def create_user(new_user: UserCreate, db: Annotated[AsyncSession, Depends(
   return new_user_db
 
 
-@router.post('/login', response_model=Token)
+@router.post('/login', response_model=JWToken)
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db)]):
   #Il campo username del formdata, che deve essere chiamato così per essere conforme a OAuth2, è la mail
 
@@ -56,7 +56,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
   if password_verification == False:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Email o password non corrette', headers={'WWW-Authenticate':'Bearer'})
 
-  return Token(
+  return JWToken(
     acces_token=jwt.jwt_create(data={'sub': str(user.id)}),
     type='bearer'
     )

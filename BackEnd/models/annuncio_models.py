@@ -6,7 +6,7 @@ from database import Base
 
 
 class Annuncio(Base):
-  __tablename__ = 'annuncio'
+  __tablename__ = 'annunci'
 
   id: Mapped[int] = mapped_column(primary_key=True)
   codice_lingua_id = mapped_column(ForeignKey('codice_lingua.id', ondelete='SET NULL'), nullable=True)
